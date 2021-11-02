@@ -33,7 +33,10 @@ nvidia_drivers() {
 	xorg-x11-drv-nvidia-cuda \
 	vulkan \
 	xorg-x11-drv-nvidia-cuda-libs \
-	vdpauinfo libva-vdpau-driver libva-utils
+	vdpauinfo libva-vdpau-driver libva-utils \
+	xorg-x11-drv-nvidia-power
+	# Enable suspend
+	systemctl enable nvidia-{suspend,resume,hibernate}
 }
 
 # Flathub
@@ -48,7 +51,7 @@ install_flatpak_packages() {
 	us.zoom.Zoom \
 	com.valvesoftware.Steam \
 	org.libreoffice.LibreOffice \
-	com.obsproject.Studio \
+	org.mozilla.Thunderbird \
 	com.github.tchx84.Flatseal \
 	com.transmissionbt.Transmission \
 	im.riot.Riot \
@@ -60,7 +63,8 @@ install_flatpak_packages() {
 	org.standardnotes.standardnotes \
 	org.chromium.Chromium \
 	com.valvesoftware.Steam.CompatibilityTool.Proton-GE \
-	org.gnome.Extensions
+	org.gnome.Extensions \
+	flathub org.cvfosammmm.Setzer
 }
 
 # Repo packages
@@ -70,15 +74,15 @@ install_rpm_packages() {
 
 # Gnome shell extensions
 install_gnome_shell_extensions() {
-	dnf install -y openssl \ #For gsconnect
-	"gnome-shell-extension-gsconnect*" \
-	gnome-shell-extension-sound-output-device-chooser*
+	dnf install -y gnome-shell-extension-gsconnect* \
+	gnome-shell-extension-sound-output-device-chooser* \
+	gnome-shell-extension-appindicator
 }
 
 # VAAPI for intel
 # https://lukas.zapletalovi.com/2020/10/enable-vaapi-on-intel.html
 install_vaapi_intel() {
-	dnf install -y libva libva-intel-driver libva-vdpau-driver libva-utils
+	dnf install -y libva libva-intel-driver libva-vdpau-driver libva-utils libvdpau-va-gl gstreamer1-vaapi
 }
 
 # Wine
@@ -90,6 +94,16 @@ install_wine() {
 	dnf groupinstall -y "C Development Tools and Libraries" "Development Tools"
 
 	dnf install -y wine
+}
+
+# Python packages
+install_python() {
+	# https://github.com/SamSchott/maestral
+	python3 -m pip install --upgrade maestral[gui]
+}
+
+incorrect_selection() {
+  echo "Incorrect selection! Try again."
 }
 
 until [ "$selection" = "0" ]; do
@@ -107,7 +121,8 @@ until [ "$selection" = "0" ]; do
 	echo "8  - Install Gnome shell extensions"
 	echo "9  - Install VAAPI packages for Intel"
 	echo "10 - Install Wine + dependencies"
-	echo "11 - Do all options in descending order"
+	echo "11 - Install Python packages"
+	echo "12 - Do all options in descending order"
 	echo ""
 	read -p "Enter choice: " -r selection
 	case $selection in
@@ -121,10 +136,12 @@ until [ "$selection" = "0" ]; do
 		8 ) install_gnome_shell_extensions ;;
 		9 ) install_vaapi_intel ;;
 		10 ) install_wine ;;
-		11 ) remove_standard_packages ; update_system ;
+		11 ) install_python;;
+		12 ) remove_standard_packages ; update_system ;
 			add_rpm_fusion_repo ; nvidia_drivers ;
 			add_flathub_repo ; install_flatpak_packages ;
 			install_rpm_packages ; install_gnome_shell_extensions ;
-			install_vaapi_intel ; install_wine ;;
+			install_vaapi_intel ; install_wine ; install_python ;;
+		* ) incorrect_selection ;;
 	esac
 done
